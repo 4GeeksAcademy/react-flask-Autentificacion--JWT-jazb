@@ -1,72 +1,95 @@
-"""
-This module takes care of starting the API Server, Loading the DB and Adding the endpoints
-"""
-import os
-from flask import Flask, request, jsonify, url_for, send_from_directory
-from flask_migrate import Migrate
-from flask_swagger import swagger
-from api.utils import APIException, generate_sitemap
-from api.models import db
-from api.routes import api
-from api.admin import setup_admin
-from api.commands import setup_commands
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
-# from models import Person
+from flask_cors import CORS
 
-ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
-static_file_dir = os.path.join(os.path.dirname(
-    os.path.realpath(__file__)), '../dist/')
+
 app = Flask(__name__)
-app.url_map.strict_slashes = False
-
-# database condiguration
-db_url = os.getenv("DATABASE_URL")
-if db_url is not None:
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace(
-        "postgres://", "postgresql://")
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
-
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-MIGRATE = Migrate(app, db, compare_type=True)
-db.init_app(app)
-
-# add the admin
-setup_admin(app)
-
-# add the admin
-setup_commands(app)
-
-# Add all endpoints form the API with a "api" prefix
-app.register_blueprint(api, url_prefix='/api')
-
-# Handle/serialize errors like a JSON object
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/user.db"
+app.config["JWT_SECRET_KEY"] = "4geeks"
+db = SQLAlchemy(app)
+jwt = JWTManager(app)
+CORS(app)
 
 
-@app.errorhandler(APIException)
-def handle_invalid_usage(error):
-    return jsonify(error.to_dict()), error.status_code
+class User(db.Model):
+    # Aquí definimos el nombre de la tabla "Person"
+    # Es opcional debiado a que usa el nombre de la clase por defecto.
+    __tablename__ = "users"
 
-# generate sitemap with all your endpoints
+    # Ten en cuenta que cada columna es también un atributo normal de primera instancia de Python.
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(250), nullable=False)
+    password = db.Column(db.String(250), nullable=False)
 
-
-@app.route('/')
-def sitemap():
-    if ENV == "development":
-        return generate_sitemap(app)
-    return send_from_directory(static_file_dir, 'index.html')
-
-# any other endpoint will try to serve it like a static file
-@app.route('/<path:path>', methods=['GET'])
-def serve_any_other_file(path):
-    if not os.path.isfile(os.path.join(static_file_dir, path)):
-        path = 'index.html'
-    response = send_from_directory(static_file_dir, path)
-    response.cache_control.max_age = 0  # avoid cache memory
-    return response
+    # El método serialize convierte el objeto en un diccionario
+    def serialize(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "password": self.password,
+        }
 
 
-# this only runs if `$ python src/main.py` is executed
+@app.route("/users", methods=['POST', 'GET'])
+def getOrAddUser():
+    if (request == "GET"):
+        # Obtener todos los registros de una tabla/modelo en particular, en este caso, de User
+        result = User.query.all()
+        result = list(map(lambda x: x.serialize(), result))
+
+        return jsonify(result)
+
+    elif (request == "POST"):
+        datos = request.get_json()
+        result = User(username=datos["username"], password=datos["password"])
+        db.session.add(result)
+        db.session.commit()
+
+        return jsonify({"estado": "ok", "mensaje": "El usuario se agrego correctamente"})
+
+
+@app.route("/user/<int:id>", methods=['GET', 'DELETE'])
+def getOrDeleteUser(id):
+    result = User.query.get(id)
+
+    if result is None:
+        return jsonify({"estado": "error", "mensaje": "No se encontro el usuario!!"}), 400
+
+    if (request.method == "GET"):
+        return User.serialize(result)
+    elif (request.method == "DELETE"):
+        db.session.delete(result)
+        db.session.commit()
+
+        return jsonify({"estado": "ok", "mensaje": "El usuario se elimino correctamente!!"})
+
+
+@app.route("/token", methods=['POST'])
+def generateToken():
+    username = request.json.get("username", None)
+    password = request.json.get("password", None)
+    user = User.query.filter_by(username=username, password=password).first()
+
+    if user is None:
+        return jsonify({"msg": "Bad username or password"}), 401
+
+    access_token = create_access_token(identity=str(user.id))
+
+    return jsonify({"token": access_token, "user_id": user.id})
+
+
+@app.route("/protected", methods=['GET'])
+@jwt_required()
+def protected():
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+
+    return jsonify({"id": user.id, "username": user.username}), 200
+
+
 if __name__ == '__main__':
-    PORT = int(os.environ.get('PORT', 3001))
-    app.run(host='0.0.0.0', port=PORT, debug=True)
+    with app.app_context():
+        db.create_all()
+    app.run(host="0.0.0.0", port=3001, debug=True)
