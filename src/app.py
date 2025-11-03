@@ -22,6 +22,8 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(250), nullable=False)
     password = db.Column(db.String(250), nullable=False)
+    name = db.Column(db.String(250), nullable=False)
+    lastname = db.Column(db.String(250), nullable=False)
 
     # El método serialize convierte el objeto en un diccionario
     def serialize(self):
@@ -29,25 +31,30 @@ class User(db.Model):
             "id": self.id,
             "username": self.username,
             "password": self.password,
+            "name": self.name,
+            "lastname": self.lastname
         }
 
 
-@app.route("/users", methods=['POST', 'GET'])
+@app.route("/users", methods=["POST", "GET"])
 def getOrAddUser():
-    if (request == "GET"):
-        # Obtener todos los registros de una tabla/modelo en particular, en este caso, de User
+    if request.method == "GET":
         result = User.query.all()
         result = list(map(lambda x: x.serialize(), result))
-
         return jsonify(result)
 
-    elif (request == "POST"):
+    elif request.method == "POST":
         datos = request.get_json()
-        result = User(username=datos["username"], password=datos["password"])
+
+        result = User(
+            username=datos["username"],
+            password=datos["password"],
+            name=datos["name"],
+            lastname=datos["lastname"]
+        )
         db.session.add(result)
         db.session.commit()
-
-        return jsonify({"estado": "ok", "mensaje": "El usuario se agrego correctamente"})
+        return jsonify({"estado": "ok", "mensaje": "El usuario se agregó correctamente"})
 
 
 @app.route("/user/<int:id>", methods=['GET', 'DELETE'])
@@ -55,15 +62,15 @@ def getOrDeleteUser(id):
     result = User.query.get(id)
 
     if result is None:
-        return jsonify({"estado": "error", "mensaje": "No se encontro el usuario!!"}), 400
+        return jsonify({"estado": "error", "mensaje": "No se encontró el usuario!!"}), 400
 
-    if (request.method == "GET"):
-        return User.serialize(result)
-    elif (request.method == "DELETE"):
+    if request.method == "GET":
+        return jsonify(result.serialize())
+
+    elif request.method == "DELETE":
         db.session.delete(result)
         db.session.commit()
-
-        return jsonify({"estado": "ok", "mensaje": "El usuario se elimino correctamente!!"})
+        return jsonify({"estado": "ok", "mensaje": "El usuario se eliminó correctamente!!"})
 
 
 @app.route("/token", methods=['POST'])
@@ -77,7 +84,7 @@ def generateToken():
 
     access_token = create_access_token(identity=str(user.id))
 
-    return jsonify({"token": access_token, "user_id": user.id})
+    return jsonify({"token": access_token, "user_id": user.id, "user_name": user.name, "user_username": user.username})
 
 
 @app.route("/protected", methods=['GET'])
