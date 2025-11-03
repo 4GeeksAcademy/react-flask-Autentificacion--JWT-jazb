@@ -57,7 +57,7 @@ def getOrAddUser():
         return jsonify({"estado": "ok", "mensaje": "El usuario se agregó correctamente"})
 
 
-@app.route("/user/<int:id>", methods=['GET', 'DELETE'])
+@app.route("/users/<int:id>", methods=['GET', 'DELETE'])
 def getOrDeleteUser(id):
     result = User.query.get(id)
 
