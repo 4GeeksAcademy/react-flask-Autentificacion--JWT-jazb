@@ -1,52 +1,49 @@
-import React, { useEffect } from "react"
-import rigoImageUrl from "../assets/img/rigo-baby.jpg";
-import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
+import { Link } from "react-router-dom";
 
-export const Home = () => {
+export default function Home() {
+  return (
+    <div>
 
-	const { store, dispatch } = useGlobalReducer()
+      {/* NAVBAR */}
+      <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div className="container">
+          <Link className="navbar-brand" to="/">Mi App</Link>
 
-	const loadMessage = async () => {
-		try {
-			const backendUrl = import.meta.env.VITE_BACKEND_URL
+          <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span className="navbar-toggler-icon"></span>
+          </button>
 
-			if (!backendUrl) throw new Error("VITE_BACKEND_URL is not defined in .env file")
+          <div className="collapse navbar-collapse" id="navbarNav">
+            <ul className="navbar-nav ms-auto">
+              <li className="nav-item">
+                <Link className="nav-link" to="/login">Iniciar Sesión</Link>
+              </li>
+              <li className="nav-item">
+                <Link className="nav-link" to="/signup">Registrarse</Link>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
 
-			const response = await fetch(backendUrl + "/api/hello")
-			const data = await response.json()
+      {/* HERO SECTION */}
+      <header className="bg-light py-5 text-center">
+        <div className="container">
+          <h1 className="display-4 fw-bold">Bienvenido a mi App 🚀</h1>
+          <p className="lead">Esta es tu página principal. Desde aquí puedes iniciar sesión o registrarte.</p>
 
-			if (response.ok) dispatch({ type: "set_hello", payload: data.message })
+          <div className="mt-4">
+            <Link className="btn btn-primary btn-lg mx-2" to="/login">Login</Link>
+            <Link className="btn btn-outline-secondary btn-lg mx-2" to="/signup">Sign Up</Link>
+          </div>
+        </div>
+      </header>
 
-			return data
+      {/* FOOTER */}
+      <footer className="bg-dark text-white text-center py-3 mt-5">
+        <p className="mb-0">© {new Date().getFullYear()} Mi App - Todos los derechos reservados</p>
+      </footer>
 
-		} catch (error) {
-			if (error.message) throw new Error(
-				`Could not fetch the message from the backend.
-				Please check if the backend is running and the backend port is public.`
-			);
-		}
-
-	}
-
-	useEffect(() => {
-		loadMessage()
-	}, [])
-
-	return (
-		<div className="text-center mt-5">
-			<h1 className="display-4">Hello Rigo!!</h1>
-			<p className="lead">
-				<img src={rigoImageUrl} className="img-fluid rounded-circle mb-3" alt="Rigo Baby" />
-			</p>
-			<div className="alert alert-info">
-				{store.message ? (
-					<span>{store.message}</span>
-				) : (
-					<span className="text-danger">
-						Loading message from the backend (make sure your python 🐍 backend is running)...
-					</span>
-				)}
-			</div>
-		</div>
-	);
-}; 
+    </div>
+  );
+}

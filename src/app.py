@@ -93,7 +93,7 @@ def protected():
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
 
-    return jsonify({"id": user.id, "username": user.username}), 200
+    return jsonify({"id": user.id,"name":user.name, "lastname":user.lastname,"username": user.username}), 200
 
 
 if __name__ == '__main__':
