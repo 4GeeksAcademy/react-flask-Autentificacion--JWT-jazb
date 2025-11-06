@@ -1,16 +1,18 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-
 from flask_cors import CORS
-
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/user.db"
 app.config["JWT_SECRET_KEY"] = "4geeks"
+
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
-CORS(app)
+
+
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
 
 
 class User(db.Model):
@@ -35,26 +37,18 @@ class User(db.Model):
             "lastname": self.lastname
         }
 
-
 @app.route("/users", methods=["POST", "GET"])
 def getOrAddUser():
     if request.method == "GET":
-        result = User.query.all()
-        result = list(map(lambda x: x.serialize(), result))
-        return jsonify(result)
+        users = User.query.all()
+        return jsonify([u.serialize() for u in users]), 200
 
-    elif request.method == "POST":
-        datos = request.get_json()
-
-        result = User(
-            username=datos["username"],
-            password=datos["password"],
-            name=datos["name"],
-            lastname=datos["lastname"]
-        )
-        db.session.add(result)
+    if request.method == "POST":
+        data = request.get_json()
+        new_user = User(**data)
+        db.session.add(new_user)
         db.session.commit()
-        return jsonify({"estado": "ok", "mensaje": "El usuario se agregó correctamente"})
+        return jsonify({"msg": "Usuario creado", "ok": True}), 201
 
 
 @app.route("/users/<int:id>", methods=['GET', 'DELETE'])
