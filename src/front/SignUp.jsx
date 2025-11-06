@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+
 
 const SignUp = () => {
     const [name, setName] = useState("");
@@ -7,42 +8,47 @@ const SignUp = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [resultado, setResultado] = useState("");
-    const navigate = useNavigate();
 
-    const loginUser = async () => {
-        
+
+    const createUser = async (e) => {
+        e.preventDefault();
+
         console.log(username, password);
 
-        
+
         const resp = await fetch(
-                "https://fluffy-giggle-wv7vqj7gvpvhv959-3001.app.github.dev/userss",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ name, lastname, username, password }),
-                })
-                console.log(resp);
-            
-        if(!resp.ok) throw Error ("Hay un problema con la informacion del login")
-        
-        if(resp.status==401){
-            throw("Invalid credential")
-        } else if(resp.status ==400){
-            throw("Invalid email o password!")
+            "https://fluffy-giggle-wv7vqj7gvpvhv959-3001.app.github.dev/users",
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, lastname, username, password }),
+
+            })
+
+        if (!resp.ok) throw Error("Hay un problema con la informacion del login")
+
+        if (resp.status == 401) {
+            throw ("Invalid credential")
+        } else if (resp.status == 400) {
+            throw ("Invalid email o password!")
         }
 
         const data = await resp.json()
-        localStorage.setItem("jwt-token", data.token);
+        if (data.estado == "ok") {
+            setResultado(data.mensaje);
+        }
 
-        return data,
+
+
     }
 
     return (
         <div className="container">
             <div className="row my-5">
                 <div className="col-md-4 offset-md-4">
-                    <form className="row g-3" onSubmit={loginUser}>
-                        <h2>Crear Cuenta</h2>
+                    <form className="row g-3" >
+                        
+                        <h2>Sign Up</h2>
 
                         <div className="col-12">
                             <label className="form-label">Name</label>
@@ -58,7 +64,7 @@ const SignUp = () => {
                         <div className="col-12">
                             <label className="form-label">LastName</label>
                             <input
-                                type="password"
+                                type="lastname"
                                 className="form-control"
                                 value={lastname}
                                 onChange={(e) => setLastname(e.target.value)}
@@ -67,32 +73,34 @@ const SignUp = () => {
                         </div>
 
                         <div className="col-12">
-                            <label className="form-label">Name</label>
+                            <label className="form-label">Username</label>
                             <input
                                 type="text"
                                 className="form-control"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
                                 required
                             />
                         </div>
 
                         <div className="col-12">
-                            <label className="form-label">Last Name</label>
+                            <label className="form-label">Password</label>
                             <input
                                 type="text"
                                 className="form-control"
-                                value={lastname}
-                                onChange={(e) => setLastname(e.target.value)}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                                 required
                             />
                         </div>
 
                         <div className="col-12">
-                            <button type="submit" className="btn btn-success w-100">
+                            <button type="submit" className="btn btn-success w-100" onClick={createUser}>
                                 Registrar Usuario
                             </button>
+                            
                         </div>
+                        <Link to={"/"}> <h5>Volver</h5></Link>
 
                         {resultado && (
                             <p className="text-center mt-2">{resultado}</p>

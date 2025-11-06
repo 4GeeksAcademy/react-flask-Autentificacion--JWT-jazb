@@ -10,7 +10,6 @@ app.config["JWT_SECRET_KEY"] = "4geeks"
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
-
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 
@@ -31,7 +30,6 @@ class User(db.Model):
         return {
             "id": self.id,
             "username": self.username,
-            "password": self.password,
             "name": self.name,
             "lastname": self.lastname
         }
@@ -85,13 +83,21 @@ def generateToken():
     return jsonify({"token": access_token, "user_id": user.id, "user_name": user.name, "user_username": user.username})
 
 
-@app.route("/protected", methods=['GET'])
+@app.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
+    current_user = get_jwt_identity()
 
-    return jsonify({"id": user.id, "name": user.name, "lastname": user.lastname, "username": user.username}), 200
+    user = User.query.filter_by(username=current_user).first()
+
+    if not user:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    return jsonify({
+        "name": user.name,
+        "lastname": user.lastname,
+        "username": user.username
+    }), 200
 
 
 if __name__ == '__main__':
