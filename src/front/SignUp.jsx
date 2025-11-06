@@ -9,36 +9,33 @@ const SignUp = () => {
     const [resultado, setResultado] = useState("");
     const navigate = useNavigate();
 
-    const loginUser = async (e) => {
-        e.preventDefault();
+    const loginUser = async () => {
+        
         console.log(username, password);
 
-        try {
-            const resp = await fetch(
-                "https://fluffy-giggle-wv7vqj7gvpvhv959-3001.app.github.dev/users",
+        
+        const resp = await fetch(
+                "https://fluffy-giggle-wv7vqj7gvpvhv959-3001.app.github.dev/userss",
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ name, lastname, username, password }),
-                }
-            );
-
-            const data = await resp.json();
-            console.log("Respuesta del backend:", data);
-
-            if (!resp.ok) {
-                setResultado("Hubo un error al registrar el usuario");
-                return;
-            }
-
-            setResultado(data.msg);
-            setTimeout(() => navigate("/login"), 1500);
-
-        } catch (error) {
-            console.error("Error:", error);
-            setResultado("Error en la conexión con el servidor");
+                })
+                console.log(resp);
+            
+        if(!resp.ok) throw Error ("Hay un problema con la informacion del login")
+        
+        if(resp.status==401){
+            throw("Invalid credential")
+        } else if(resp.status ==400){
+            throw("Invalid email o password!")
         }
-    };
+
+        const data = await resp.json()
+        localStorage.setItem("jwt-token", data.token);
+
+        return data,
+    }
 
     return (
         <div className="container">
@@ -48,23 +45,23 @@ const SignUp = () => {
                         <h2>Crear Cuenta</h2>
 
                         <div className="col-12">
-                            <label className="form-label">Username</label>
+                            <label className="form-label">Name</label>
                             <input
                                 type="text"
                                 className="form-control"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
                                 required
                             />
                         </div>
 
                         <div className="col-12">
-                            <label className="form-label">Password</label>
+                            <label className="form-label">LastName</label>
                             <input
                                 type="password"
                                 className="form-control"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                value={lastname}
+                                onChange={(e) => setLastname(e.target.value)}
                                 required
                             />
                         </div>

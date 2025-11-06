@@ -14,7 +14,6 @@ jwt = JWTManager(app)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 
-
 class User(db.Model):
     # Aquí definimos el nombre de la tabla "Person"
     # Es opcional debiado a que usa el nombre de la clase por defecto.
@@ -37,18 +36,23 @@ class User(db.Model):
             "lastname": self.lastname
         }
 
+
 @app.route("/users", methods=["POST", "GET"])
 def getOrAddUser():
-    if request.method == "GET":
-        users = User.query.all()
-        return jsonify([u.serialize() for u in users]), 200
+    if (request.method == "GET"):
+        result = User.query.all()
+        result = list(map(lambda x: x.serialize(), result))
 
-    if request.method == "POST":
-        data = request.get_json()
-        new_user = User(**data)
-        db.session.add(new_user)
+        return jsonify(result)
+
+    elif (request.method == "POST"):
+        datos = request.get_json()
+        result = User(name=datos["name"], lastname=datos["lastname"],
+                      username=datos["username"], password=datos["password"])
+        db.session.add(result)
         db.session.commit()
-        return jsonify({"msg": "Usuario creado", "ok": True}), 201
+
+        return jsonify({"estado": "ok", "mensaje": "El usuario se agrego correctamente!"})
 
 
 @app.route("/users/<int:id>", methods=['GET', 'DELETE'])
@@ -87,7 +91,7 @@ def protected():
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
 
-    return jsonify({"id": user.id,"name":user.name, "lastname":user.lastname,"username": user.username}), 200
+    return jsonify({"id": user.id, "name": user.name, "lastname": user.lastname, "username": user.username}), 200
 
 
 if __name__ == '__main__':
