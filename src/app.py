@@ -4,13 +4,14 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=False)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/user.db"
 app.config["JWT_SECRET_KEY"] = "4geeks"
 
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
 
 
 class User(db.Model):
@@ -73,22 +74,31 @@ def getOrDeleteUser(id):
 def generateToken():
     username = request.json.get("username", None)
     password = request.json.get("password", None)
-    user = User.query.filter_by(username=username, password=password).first()
 
-    if user is None:
-        return jsonify({"msg": "Bad username or password"}), 401
+    # Validar si el usuario existe
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"msg": "User not found"}), 401
+
+    # Validar contraseña
+    if user.password != password:
+        return jsonify({"msg": "Wrong password"}), 400
 
     access_token = create_access_token(identity=str(user.id))
 
-    return jsonify({"token": access_token, "user_id": user.id, "user_name": user.name, "user_username": user.username})
+    return jsonify({
+        "token": access_token,
+        "user_id": user.id,
+        "user_name": user.name,
+        "user_username": user.username
+    }), 200
 
 
 @app.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():
-    current_user = get_jwt_identity()
-
-    user = User.query.filter_by(username=current_user).first()
+    user_id = get_jwt_identity()  # <- esto es el ID del usuario
+    user = User.query.get(user_id)  # <- buscar por ID
 
     if not user:
         return jsonify({"msg": "Usuario no encontrado"}), 404

@@ -5,42 +5,34 @@ import { Link } from "react-router-dom";
 const Login = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [resultado, setResultado] = useState("");
     const navigate = useNavigate();
-    const [error, setError] = useState("");
 
-   
+
+
     const loginUser = async (e) => {
         e.preventDefault();
 
-        const values = {username,password}
-        console.log(values)
+        const resp = await fetch("https://fluffy-giggle-wv7vqj7gvpvhv959-3001.app.github.dev/token", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({ username, password })
+         });
 
-        const resp = await fetch(`https://fluffy-giggle-wv7vqj7gvpvhv959-3001.app.github.dev/token`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password })
-        });
 
-        if (!resp.ok)
-            throw Error(" Hay un problema con la informacion");
+        console.log("Status:", resp.status);
 
-        if (resp.status == 401) {
-            throw ("Invalid credential")
-        } else if (resp.status == 400) {
-            throw ("Invalid email o password!")
+        if (!resp.ok) {
+            const data = await resp.json();
+            setResultado(data.msg || "Error al iniciar sesión");
+            return;   // NO continúa, NO guarda token, NO navega
         }
 
-
-       const data = await resp.json();
+        const data = await resp.json();
         localStorage.setItem("jwt-token", data.token);
-
-        // Redirige a la página privada
-        navigate("/Private");
-
-       
-
-       
+        navigate("/Private", { replace: true });
     };
+
 
 
     return (
@@ -55,13 +47,16 @@ const Login = () => {
                             value={username} onChange={(e) => setUsername(e.target.value)} />
 
                         <input className="form-control" type="password" placeholder="Password"
-                            value={password} onInput={(e) => setPassword(e.target.value)} />
+                            value={password} onChange={(e) => setPassword(e.target.value)} />
+                         
+                        <button className="btn btn-primary w-100" type="submit">Enviar</button>
 
-                        <button className="btn btn-primary w-100">Ingresar</button>
                         <Link to={"/"}> <h5>Volver</h5></Link>
 
-                        {error && <p className="text-danger">{error}</p>}
+                        {resultado && <p className="text-danger">{resultado}</p>}
                     </form>
+                    <p className="may-5">No tienes una cuenta ? puedes registrarte <Link to={"/SignUp"} className="faw-bold text-decoration-none">aqui</Link></p>
+                    {resultado ? <div className="alert alert-danger my-5" role="alert">{resultado}</div> : ""}
                 </div>
             </div>
         </div>
